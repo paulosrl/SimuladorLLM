@@ -14,7 +14,7 @@ echo.
 echo Gerando executavel (isso pode demorar alguns minutos)...
 echo.
 
-pyinstaller --name="Simulador_LLM_MPPA" ^
+pyinstaller --name="simulador_llm_Windows" ^
     --onefile ^
     --windowed ^
     --icon=Mui.png ^
@@ -31,11 +31,11 @@ pyinstaller --name="Simulador_LLM_MPPA" ^
 
 echo.
 echo ========================================
-if exist "dist\Simulador_LLM_Windows.exe" (
-    echo SUCESSO! Executavel gerado em: dist\Simulador_LLM_Windows.exe
+if exist "dist\simulador_llm_Windows.exe" (
+    echo SUCESSO! Executavel gerado em: dist\simulador_llm_Windows.exe
     echo.
     echo Copiando logo para a pasta dist...
-    copy Mui.jpg dist\Mui.jpg
+    copy Mui.png dist\Mui.png
     echo.
     echo Pronto para distribuir!
 ) else (
