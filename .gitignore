@@ -1,0 +1,11 @@
+# Ignorar a pasta de configurações locais
+.vscode/
+build/
+dist/
+
+# Ignorar arquivos temporários
+*.log
+*.tmp
+
+# Ignorar ambiente virtual Python
+.venv/
