@@ -371,7 +371,7 @@ def main():
         st.subheader("Digite uma frase ou palavra:")
         texto_entrada = st.text_input(
             "Insira o texto para análise semântica:",
-            placeholder="Ex: Vou sentar no banco da praça...",
+            placeholder="Digite uma palavra ou frase pequena...",
             help="Digite uma frase com contexto"
         )
 
