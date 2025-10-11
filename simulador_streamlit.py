@@ -73,6 +73,8 @@ PESOS = {
 
 # ==================== FUNÇÕES ====================
 
+# Teste
+
 def normalizar_texto(texto):
     if not isinstance(texto, str):
         return ""
