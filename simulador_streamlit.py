@@ -27,7 +27,9 @@ GRUPOS = {
     },
     "Financeiro": {
         "banco", "moeda", "cédula", "caixa", "dinheiro", "investimento", "juros",
-        "pix", "boleto", "cartão", "cheque", "saldo", "crédito", "débito"
+        "pix", "boleto", "cartão", "cheque", "saldo", "crédito", "débito",
+        "depósito", "deposito", "depósito bancário", "transferência", "poupança",
+        "saque", "extrato", "cofre", "aplicação"
     }
 }
 
@@ -81,7 +83,8 @@ PALAVRAS_INFERENCIA = {
     "Financeiro": [
         "pix", "boleto", "nota", "real", "dólar", "euro", "bitcoin",
         "ação", "fundo", "renda", "lucro", "poupança", "cartão",
-        "investidor", "fintech"
+        "investidor", "fintech", "depósito", "transferência", "remessa",
+        "depósito bancário"
     ]
 }
 
@@ -104,6 +107,7 @@ SESSION_STATE_DEFAULTS = {
     "resultado_analise": "",
     "palavra_atual": "",
     "scores": {},
+    "grupo_identificado": None,
     "_reset_requested": False
 }
 
@@ -253,7 +257,12 @@ def identificar_grupo(texto):
     if not scores or all(v == 0 for v in scores.values()):
         return None, scores
     grupo_principal = max(scores.items(), key=lambda x: x[1])
-    if grupo_principal[1] > 0.1:
+    max_score = grupo_principal[1]
+    grupos_top = []
+    for nome, valor in scores.items():
+        if valor > 0 and abs(valor - max_score) < 1e-6:
+            grupos_top.append(nome)
+    if len(grupos_top) == 1 and max_score > 0.1:
         return grupo_principal[0], scores
     return None, scores
 
@@ -537,6 +546,7 @@ def executar_interface(
                 st.session_state.resultado_analise = "\n".join(resultado).strip()
                 st.session_state.scores = dict(scores)
                 st.session_state.texto_analisado = texto_analisar
+                st.session_state.grupo_identificado = grupo_identificado
 
     with col1:
         if st.session_state.resultado_analise:
@@ -612,9 +622,35 @@ def executar_interface(
             if not todas_similaridades:
                 st.markdown("Nenhum resultado de similaridade para esta palavra.")
             else:
-                todas_similaridades.sort(key=lambda x: x["similaridade"], reverse=True)
+                palavra_referencia = normalizar_texto(st.session_state.palavra_atual)
+                limite = 35.0
+                similares_filtrados = [
+                    item for item in todas_similaridades
+                    if item["similaridade"] >= limite
+                ]
+
+                grupo_foco = st.session_state.get("grupo_identificado")
+                if grupo_foco:
+                    similares_filtrados = [
+                        item for item in similares_filtrados
+                        if item["grupo"] == grupo_foco
+                    ]
+
+                if not similares_filtrados:
+                    st.markdown(
+                        f"Sem similaridades acima de {limite:.0f}% "
+                        f"para o grupo detectado ({grupo_foco if grupo_foco else 'n/d'}). "
+                        "Listando os resultados mais próximos, independentemente do grupo."
+                    )
+                    similares_filtrados = sorted(
+                        todas_similaridades,
+                        key=lambda x: x["similaridade"],
+                        reverse=True
+                    )[:20]
+
+                similares_filtrados.sort(key=lambda x: x["similaridade"], reverse=True)
                 st.markdown(f"🔍 **Similaridades globais para '{st.session_state.palavra_atual}'**")
-                for item in todas_similaridades[:20]:
+                for item in similares_filtrados[:20]:
                     st.markdown(
                         f"<span style='display:inline-flex; align-items:center;'>"
                         f"<span style='width:10px; height:10px; border-radius:50%; "
