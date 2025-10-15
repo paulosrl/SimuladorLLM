@@ -185,18 +185,57 @@ def calcular_similaridade_composta(palavra_busca, palavra_comparacao):
     similaridade_final = (sim_levenshtein * 0.6 + sim_caracteres * 0.4 + bonus_substring) * 100
     return min(100.0, similaridade_final)
 
-def calcular_similaridades_palavra(palavra_busca):
+def _buscar_grupos_por_palavra(palavra):
+    palavra_normalizada = normalizar_texto(palavra)
+    if not palavra_normalizada:
+        return set()
+
+    grupos_encontrados = set()
+    for nome_grupo, palavras_grupo in GRUPOS.items():
+        palavras_normalizadas = {normalizar_texto(p) for p in palavras_grupo}
+        if palavra_normalizada in palavras_normalizadas:
+            grupos_encontrados.add(nome_grupo)
+
+    return grupos_encontrados
+
+def calcular_similaridades_palavra(palavra_busca, grupo_contexto=None):
     if not palavra_busca or len(palavra_busca.strip()) < 2:
         return {}
 
     palavra_busca = palavra_busca.strip()
+    palavra_busca_norm = normalizar_texto(palavra_busca)
+    grupos_palavra = _buscar_grupos_por_palavra(palavra_busca_norm)
     similaridades = {}
 
     for nome_grupo, palavras_grupo in GRUPOS.items():
         similaridades[nome_grupo] = []
         for palavra in sorted(palavras_grupo):
-            similaridade = calcular_similaridade_composta(palavra_busca, palavra)
-            similaridades[nome_grupo].append({'palavra': palavra, 'similaridade': similaridade})
+            similaridade_base = calcular_similaridade_composta(palavra_busca, palavra)
+            palavra_norm = normalizar_texto(palavra)
+
+            if palavra_norm == palavra_busca_norm:
+                similaridade_final = 100.0
+            else:
+                bonus = 0.0
+
+                if grupos_palavra:
+                    if nome_grupo in grupos_palavra:
+                        bonus += 35.0
+                    else:
+                        bonus -= 5.0
+
+                if grupo_contexto:
+                    if nome_grupo == grupo_contexto:
+                        bonus += 15.0
+                    else:
+                        bonus -= 5.0
+
+                similaridade_final = max(0.0, min(100.0, similaridade_base + bonus))
+
+            similaridades[nome_grupo].append({
+                'palavra': palavra,
+                'similaridade': similaridade_final
+            })
         similaridades[nome_grupo].sort(key=lambda x: x['similaridade'], reverse=True)
 
     return similaridades
@@ -438,8 +477,8 @@ def criar_grafico_3d_plotly(texto_busca=""):
             yaxis=dict(gridcolor='gray', color='white', range=[-8, 8]),
             zaxis=dict(gridcolor='gray', color='white', range=[-2, 4])
         ),
-        width=900,
         height=700,
+        autosize=True,
         margin=dict(l=0, r=0, b=0, t=25),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='black',
@@ -481,238 +520,213 @@ def executar_interface(
     st.title(titulo_cabecalho)
     st.markdown("**MPPA - CIIA | Escritório de Inovação e Inteligência Artificial**")
 
-    col1, col2 = st.columns([0.5, 1.5])
+    st.subheader("Digite uma frase ou palavra:")
+    st.text_input(
+        "Insira o texto para análise semântica:",
+        placeholder="Digite uma palavra ou uma pequena frase...",
+        help="Digite uma frase com contexto",
+        key="texto_entrada"
+    )
 
-    with col1:
-        st.subheader("Digite uma frase ou palavra:")
-        st.text_input(
-            "Insira o texto para análise semântica:",
-            placeholder="Digite uma palavra ou uma pequena frase...",
-            help="Digite uma frase com contexto",
-            key="texto_entrada"
+    col_btn1, col_btn2, col_btn3 = st.columns(3)
+    with col_btn1:
+        analisar = st.button("🔍 Analisar", type="primary", use_container_width=True)
+    with col_btn2:
+        limpar = st.button("🔄 Limpar", use_container_width=True)
+    with col_btn3:
+        inicial = st.button("🏠 Inicial", use_container_width=True)
+
+    if limpar or inicial:
+        st.session_state._reset_requested = True
+        st.rerun()
+
+    texto_analisar = st.session_state.texto_entrada.strip()
+
+    if analisar:
+        if not texto_analisar:
+            st.warning("Digite uma palavra ou frase para análise.")
+        else:
+            grupo_identificado, scores = identificar_grupo(texto_analisar)
+            ambiguas = detectar_palavras_ambiguas(texto_analisar)
+            desconhecidas = sorted(set(detectar_palavras_desconhecidas(texto_analisar)))
+
+            st.session_state.palavra_atual = (
+                texto_analisar.split()[0].strip('.,!?;:')
+                if texto_analisar else ""
+            )
+
+            resultado = []
+            if ambiguas:
+                resultado.append("🔀 **PALAVRAS AMBÍGUAS:**")
+                for palavra_amb, grupos_amb in ambiguas:
+                    resultado.append(f"  • '{palavra_amb}' pertence a: {', '.join(grupos_amb)}")
+                resultado.append("")
+
+            if desconhecidas:
+                resultado.append("❓ **PALAVRAS DESCONHECIDAS:**")
+                resultado.append(f"  {', '.join(desconhecidas)}")
+                resultado.append("")
+
+            if grupo_identificado:
+                resultado.append(f"✅ **GRUPO:** {grupo_identificado}")
+                resultado.append(f"   Confiança: {scores[grupo_identificado]*100:.1f}%")
+                resultado.append("")
+            else:
+                resultado.append("⚠️ **SEM CONTEXTO**")
+                resultado.append("")
+
+            resultado.append("🎯 **Pertinência por grupo:**")
+            for nome, valor in sorted(scores.items(), key=lambda item: item[1], reverse=True):
+                resultado.append(f"   - {nome}: {valor*100:.1f}%")
+
+            st.session_state.resultado_analise = "\n".join(resultado).strip()
+            st.session_state.scores = dict(scores)
+            st.session_state.texto_analisado = texto_analisar
+            st.session_state.grupo_identificado = grupo_identificado
+
+    st.subheader("🌐 Visualização 3D")
+    fig = criar_grafico_func(st.session_state.texto_analisado)
+    st.plotly_chart(fig, use_container_width=True)
+
+    with st.expander("ℹ️ Sobre o Gráfico"):
+        st.markdown(info_grafico_texto.strip())
+
+    st.subheader("📊 Análise Detalhada:")
+    if st.session_state.resultado_analise:
+        st.markdown(st.session_state.resultado_analise)
+    else:
+        st.markdown("""
+        🎨 **Estado inicial carregado!**
+
+        Mostrando estrutura dos grupos semânticos.
+
+        💡 **Digite uma palavra e clique em Analisar!**
+
+        **Exemplos:**
+        • 'banco' - palavra ambígua
+        • 'carro' - palavra específica  
+        • 'sentar no banco' - frase contextual
+
+        🎯 **MPPA - GIIA**
+        """)
+
+    st.subheader("📈 Gráfico de Pertinência")
+    if 'scores' in st.session_state and st.session_state.scores:
+        scores_ordenados = sorted(
+            st.session_state.scores.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        grupos_names = [g[0] for g in scores_ordenados]
+        scores_values = [g[1] * 100 for g in scores_ordenados]
+        cores_barras = [CORES_GRUPOS[g] for g in grupos_names]
+        yaxis_max = max(scores_values) * 1.2 if scores_values else 100
+        yaxis_max = max(yaxis_max, 10)
+
+        fig_barras = go.Figure(data=[
+            go.Bar(
+                x=grupos_names,
+                y=scores_values,
+                marker_color=cores_barras,
+                text=[f"{v:.1f}%" for v in scores_values],
+                textposition='outside'
+            )
+        ])
+
+        fig_barras.update_layout(
+            height=300,
+            margin=dict(l=0, r=0, t=10, b=0),
+            xaxis_title="Grupos",
+            yaxis_title="Pertinência (%)",
+            yaxis_range=[0, yaxis_max],
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='white')
         )
 
-        col_btn1, col_btn2, col_btn3 = st.columns(3)
-        with col_btn1:
-            analisar = st.button("🔍 Analisar", type="primary", use_container_width=True)
-        with col_btn2:
-            limpar = st.button("🔄 Limpar", use_container_width=True)
-        with col_btn3:
-            inicial = st.button("🏠 Inicial", use_container_width=True)
+        st.plotly_chart(fig_barras, use_container_width=True)
+    else:
+        st.info("Nenhuma análise realizada ainda.")
 
-        if limpar or inicial:
-            st.session_state._reset_requested = True
-            st.rerun()
+    st.subheader("🔍 Similaridades")
+    if st.session_state.palavra_atual:
+        grupo_foco = st.session_state.get("grupo_identificado")
+        similaridades_por_grupo = calcular_similaridades_palavra(
+            st.session_state.palavra_atual,
+            grupo_contexto=grupo_foco
+        )
 
-        texto_analisar = st.session_state.texto_entrada.strip()
+        todas_similaridades = []
+        for nome_grupo, itens in similaridades_por_grupo.items():
+            for item in itens:
+                todas_similaridades.append({
+                    "grupo": nome_grupo,
+                    "palavra": item["palavra"],
+                    "similaridade": item["similaridade"],
+                    "cor": CORES_GRUPOS.get(nome_grupo, "#FFFFFF")
+                })
 
-        if analisar:
-            if not texto_analisar:
-                st.warning("Digite uma palavra ou frase para análise.")
-            else:
-                grupo_identificado, scores = identificar_grupo(texto_analisar)
-                ambiguas = detectar_palavras_ambiguas(texto_analisar)
-                desconhecidas = sorted(set(detectar_palavras_desconhecidas(texto_analisar)))
+        if not todas_similaridades:
+            st.markdown("Nenhum resultado de similaridade para esta palavra.")
+        else:
+            limite = 35.0
+            similares_filtrados = [
+                item for item in todas_similaridades
+                if item["similaridade"] >= limite
+            ]
 
-                st.session_state.palavra_atual = (
-                    texto_analisar.split()[0].strip('.,!?;:')
-                    if texto_analisar else ""
-                )
-
-                resultado = []
-                if ambiguas:
-                    resultado.append("🔀 **PALAVRAS AMBÍGUAS:**")
-                    for palavra_amb, grupos_amb in ambiguas:
-                        resultado.append(f"  • '{palavra_amb}' pertence a: {', '.join(grupos_amb)}")
-                    resultado.append("")
-
-                if desconhecidas:
-                    resultado.append("❓ **PALAVRAS DESCONHECIDAS:**")
-                    resultado.append(f"  {', '.join(desconhecidas)}")
-                    resultado.append("")
-
-                if grupo_identificado:
-                    resultado.append(f"✅ **GRUPO:** {grupo_identificado}")
-                    resultado.append(f"   Confiança: {scores[grupo_identificado]*100:.1f}%")
-                    resultado.append("")
-                else:
-                    resultado.append("⚠️ **SEM CONTEXTO**")
-                    resultado.append("")
-
-                resultado.append("🎯 **Pertinência por grupo:**")
-                for nome, valor in sorted(scores.items(), key=lambda item: item[1], reverse=True):
-                    resultado.append(f"   - {nome}: {valor*100:.1f}%")
-
-                st.session_state.resultado_analise = "\n".join(resultado).strip()
-                st.session_state.scores = dict(scores)
-                st.session_state.texto_analisado = texto_analisar
-                st.session_state.grupo_identificado = grupo_identificado
-
-    with col1:
-        if st.session_state.resultado_analise:
-            st.subheader("📊 Análise Detalhada:")
-            st.markdown(st.session_state.resultado_analise)
-
-            if 'scores' in st.session_state and st.session_state.scores:
-                scores_ordenados = sorted(
-                    st.session_state.scores.items(),
-                    key=lambda x: x[1],
-                    reverse=True
-                )
-                grupos_names = [g[0] for g in scores_ordenados]
-                scores_values = [g[1] * 100 for g in scores_ordenados]
-                cores_barras = [CORES_GRUPOS[g] for g in grupos_names]
-                yaxis_max = max(scores_values) * 1.2 if scores_values else 100
-                yaxis_max = max(yaxis_max, 10)
-
-                fig_barras = go.Figure(data=[
-                    go.Bar(
-                        x=grupos_names,
-                        y=scores_values,
-                        marker_color=cores_barras,
-                        text=[f"{v:.1f}%" for v in scores_values],
-                        textposition='outside'
-                    )
-                ])
-
-                fig_barras.update_layout(
-                    height=300,
-                    margin=dict(l=0, r=0, t=10, b=0),
-                    xaxis_title="Grupos",
-                    yaxis_title="Pertinência (%)",
-                    yaxis_range=[0, yaxis_max],
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    font=dict(color='white')
-                )
-
-                st.plotly_chart(fig_barras, use_container_width=True)
-
-        elif not st.session_state.resultado_analise:
-            st.subheader("📊 Análise Detalhada:")
-            st.markdown("""
-            🎨 **Estado inicial carregado!**
-
-            Mostrando estrutura dos grupos semânticos.
-
-            💡 **Digite uma palavra e clique em Analisar!**
-
-            **Exemplos:**
-            • 'banco' - palavra ambígua
-            • 'carro' - palavra específica  
-            • 'sentar no banco' - frase contextual
-
-            🎯 **MPPA - GIIA**
-            """)
-
-        if st.session_state.palavra_atual:
-            st.subheader("🔍 Similaridades")
-            similaridades_por_grupo = calcular_similaridades_palavra(st.session_state.palavra_atual)
-
-            todas_similaridades = []
-            for nome_grupo, itens in similaridades_por_grupo.items():
-                for item in itens:
-                    todas_similaridades.append({
-                        "grupo": nome_grupo,
-                        "palavra": item["palavra"],
-                        "similaridade": item["similaridade"],
-                        "cor": CORES_GRUPOS.get(nome_grupo, "#FFFFFF")
-                    })
-
-            if not todas_similaridades:
-                st.markdown("Nenhum resultado de similaridade para esta palavra.")
-            else:
-                palavra_referencia = normalizar_texto(st.session_state.palavra_atual)
-                limite = 35.0
+            if grupo_foco:
                 similares_filtrados = [
-                    item for item in todas_similaridades
-                    if item["similaridade"] >= limite
+                    item for item in similares_filtrados
+                    if item["grupo"] == grupo_foco
                 ]
-
-                grupo_foco = st.session_state.get("grupo_identificado")
-                if grupo_foco:
-                    similares_filtrados = [
-                        item for item in similares_filtrados
-                        if item["grupo"] == grupo_foco
-                    ]
-                    if len(similares_filtrados) <= 1:
-                        candidatos_grupo = sorted(
-                            similaridades_por_grupo.get(grupo_foco, []),
-                            key=lambda x: x["similaridade"],
-                            reverse=True
-                        )[:5]
-                        similares_filtrados = [
-                            {
-                                "grupo": grupo_foco,
-                                "palavra": item["palavra"],
-                                "similaridade": item["similaridade"],
-                                "cor": CORES_GRUPOS.get(grupo_foco, "#FFFFFF")
-                            }
-                            for item in candidatos_grupo
-                        ]
-
-                if not similares_filtrados:
-                    st.markdown(
-                        f"Sem similaridades acima de {limite:.0f}% "
-                        f"para o grupo detectado ({grupo_foco if grupo_foco else 'n/d'}). "
-                        "Listando os resultados mais próximos, independentemente do grupo."
-                    )
-                    similares_filtrados = sorted(
-                        todas_similaridades,
+                if len(similares_filtrados) <= 1:
+                    candidatos_grupo = sorted(
+                        similaridades_por_grupo.get(grupo_foco, []),
                         key=lambda x: x["similaridade"],
                         reverse=True
-                    )[:20]
+                    )[:5]
+                    similares_filtrados = [
+                        {
+                            "grupo": grupo_foco,
+                            "palavra": item["palavra"],
+                            "similaridade": item["similaridade"],
+                            "cor": CORES_GRUPOS.get(grupo_foco, "#FFFFFF")
+                        }
+                        for item in candidatos_grupo
+                    ]
 
-                similares_filtrados.sort(key=lambda x: x["similaridade"], reverse=True)
-                st.markdown(f"🔍 **Similaridades globais para '{st.session_state.palavra_atual}'**")
-                for item in similares_filtrados[:20]:
-                    st.markdown(
-                        f"<span style='display:inline-flex; align-items:center;'>"
-                        f"<span style='width:10px; height:10px; border-radius:50%; "
-                        f"background:{item['cor']}; display:inline-block; margin-right:8px;'></span>"
-                        f"{item['palavra']} &mdash; <em>{item['grupo']}</em> "
-                        f"({item['similaridade']:.1f}%)"
-                        f"</span>",
-                        unsafe_allow_html=True
-                    )
-        else:
-            st.subheader("🔍 Similaridades")
-            st.markdown("Digite uma palavra e analise para ver similaridades.")
+            if not similares_filtrados:
+                st.markdown(
+                    f"Sem similaridades acima de {limite:.0f}% "
+                    f"para o grupo detectado ({grupo_foco if grupo_foco else 'n/d'}). "
+                    "Listando os resultados mais próximos, independentemente do grupo."
+                )
+                similares_filtrados = sorted(
+                    todas_similaridades,
+                    key=lambda x: x["similaridade"],
+                    reverse=True
+                )[:20]
 
-        st.subheader("📚 Grupos Semânticos")
-        for nome, palavras in GRUPOS.items():
-            with st.expander(f"{nome} ({len(palavras)} palavras)"):
-                st.write(", ".join(sorted(palavras)))
+            similares_filtrados.sort(key=lambda x: x["similaridade"], reverse=True)
+            st.markdown(f"🔍 **Similaridades globais para '{st.session_state.palavra_atual}'**")
+            for item in similares_filtrados[:20]:
+                st.markdown(
+                    f"<span style='display:inline-flex; align-items:center;'>"
+                    f"<span style='width:10px; height:10px; border-radius:50%; "
+                    f"background:{item['cor']}; display:inline-block; margin-right:8px;'></span>"
+                    f"{item['palavra']} &mdash; <em>{item['grupo']}</em> "
+                    f"({item['similaridade']:.1f}%)"
+                    f"</span>",
+                    unsafe_allow_html=True
+                )
+    else:
+        st.markdown("Digite uma palavra e analise para ver similaridades.")
 
-        st.subheader("💾 Exportar")
-        col_exp1, col_exp2 = st.columns(2)
-        with col_exp1:
-            if st.button("📊 Gráfico", use_container_width=True):
-                st.info("Clique direito no gráfico > Save image")
-        with col_exp2:
-            if st.button("📄 Dados", use_container_width=True):
-                if st.session_state.palavra_atual:
-                    similaridades = calcular_similaridades_palavra(st.session_state.palavra_atual)
-                    dados_export = {
-                        'palavra': st.session_state.palavra_atual,
-                        'timestamp': datetime.now().isoformat(),
-                        'similaridades': similaridades
-                    }
-                    json_str = json.dumps(dados_export, indent=2, ensure_ascii=False)
-                    st.download_button(
-                        "📥 Download JSON",
-                        json_str,
-                        f"similaridades_{st.session_state.palavra_atual}.json",
-                        "application/json",
-                        use_container_width=True
-                    )
-
-    with col2:
-        fig = criar_grafico_func(st.session_state.texto_analisado)
-        st.plotly_chart(fig, use_container_width=True)
-
-        with st.expander("ℹ️ Sobre o Gráfico"):
-            st.markdown(info_grafico_texto.strip())
+    st.subheader("📚 Grupos Semânticos")
+    for nome, palavras in GRUPOS.items():
+        with st.expander(f"{nome} ({len(palavras)} palavras)"):
+            st.write(", ".join(sorted(palavras)))
 
 
 def main():
