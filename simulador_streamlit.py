@@ -13,30 +13,45 @@ import plotly.graph_objects as go
 # ==================== DADOS ====================
 
 GRUPOS = {
-    "Transportes": {"carro", "avião", "ônibus", "bicicleta", "motocicleta", "trem", "veículo"},
-    "Móveis": {"cadeira", "mesa", "banco", "armário", "sofá", "cômoda", "cama"},
-    "Animais": {"cachorro", "gato", "focinho", "rato", "leão", "tigre", "baleia"},
-    "Financeiro": {"banco", "moeda", "cédula", "caixa", "dinheiro", "investimento", "juros"}
+    "Transportes": {
+        "carro", "avião", "ônibus", "bicicleta", "motocicleta", "trem", "veículo",
+        "barco", "navio", "metrô", "estrada", "aeroporto", "garagem", "rota",
+    },
+    "Móveis": {
+        "cadeira", "mesa", "banco", "armário", "sofá", "cômoda", "cama",
+        "poltrona", "estante"
+    },
+    "Animais": {
+        "cachorro", "gato", "focinho", "rato", "leão", "tigre", "baleia",
+        "rabo", "crocodilo", "cavalo", "ferradura"
+    },
+    "Financeiro": {
+        "banco", "moeda", "cédula", "caixa", "dinheiro", "investimento", "juros",
+        "pix", "boleto", "cartão", "cheque", "saldo", "crédito", "débito"
+    }
 }
+
 
 CONTEXTO_GRUPOS = {
     "Transportes": {
         "viajar", "dirigir", "pilotar", "velocidade", "motor", "combustível", 
         "passageiro", "estrada", "rua", "aeroporto", "garagem", "estacionar",
         "viagem", "roda", "acelerar", "freio", "transporte", "locomover", "tráfego",
-        "partida", "chegada", "embarque", "desembarque"
+        "partida", "chegada", "embarque", "desembarque", "trajeto", "rodovia",
+        "ponto", "embarcar", "porto", "metrô"
     },
     "Móveis": {
         "sentar", "sentei", "sentou", "sentado", "sentada", "sentem", "casa", 
         "sala", "quarto", "madeira", "decoração", "móvel", "conforto", "decorar", 
         "residência", "apartamento", "escritório", "design", "estofado", "montagem", 
         "ergonomia", "praça", "jardim", "parque", "acomodar", "descansar", "repousar",
-        "apoiar", "encostar"
+        "apoiar", "encostar", "interior", "decoração"
     },
     "Animais": {
         "pet", "animal", "bicho", "selvagem", "doméstico", "natureza", "zoológico",
         "veterinário", "pelo", "pata", "cauda", "mamífero", "espécie",
-        "fauna", "ração", "alimentar", "latir", "miar", "rugir"
+        "fauna", "ração", "alimentar", "latir", "miar", "rugir", "jacaré",
+        "réptil", "selva", "pantanal", "floresta", "crocodilo", "aquático"
     },
     "Financeiro": {
         "dinheiro", "pagar", "receber", "conta", "depósito", "depositar", "depositei",
@@ -48,14 +63,26 @@ CONTEXTO_GRUPOS = {
 }
 
 PALAVRAS_INFERENCIA = {
-    "Animais": ["tartaruga", "cobra", "pássaro", "peixe", "elefante", "girafa", 
-                "macaco", "urso", "lobo", "raposa", "coelho", "hamster", "papagaio"],
-    "Transportes": ["moto", "barco", "navio", "helicóptero", "metrô", "taxi",
-                   "caminhão", "van", "scooter", "patinete", "skate"],
-    "Móveis": ["estante", "escrivaninha", "poltrona", "banqueta", "criado-mudo",
-              "guarda-roupa", "buffet", "aparador", "rack", "prateleira"],
-    "Financeiro": ["pix", "boleto", "nota", "real", "dólar", "euro", "bitcoin",
-                  "ação", "fundo", "renda", "lucro"]
+    "Animais": [
+        "tartaruga", "cobra", "pássaro", "peixe", "elefante", "girafa",
+        "macaco", "urso", "lobo", "raposa", "coelho", "hamster", "papagaio",
+        "jacaré", "crocodilo", "cavalo", "lagarto", "onça", "sapo"
+    ],
+    "Transportes": [
+        "moto", "barco", "navio", "helicóptero", "metrô", "taxi",
+        "caminhão", "van", "scooter", "patinete", "skate", "uber",
+        "barca", "bicicletário"
+    ],
+    "Móveis": [
+        "estante", "escrivaninha", "poltrona", "banqueta", "criado-mudo",
+        "guarda-roupa", "buffet", "aparador", "rack", "prateleira",
+        "puff", "cômoda", "sapateira"
+    ],
+    "Financeiro": [
+        "pix", "boleto", "nota", "real", "dólar", "euro", "bitcoin",
+        "ação", "fundo", "renda", "lucro", "poupança", "cartão",
+        "investidor", "fintech"
+    ]
 }
 
 CORES_GRUPOS = {
@@ -71,9 +98,31 @@ PESOS = {
     "principal": 0.2
 }
 
-# ==================== FUNÇÕES ====================
+SESSION_STATE_DEFAULTS = {
+    "texto_entrada": "",
+    "texto_analisado": "",
+    "resultado_analise": "",
+    "palavra_atual": "",
+    "scores": {},
+    "_reset_requested": False
+}
 
-# Teste
+INFO_GRAFICO_3D = """
+**Como usar:**
+- 🔍 Zoom: Role o mouse
+- 🖱️ Rotacionar: Clique e arraste
+- 📏 Pan: Shift + arraste
+- 🏠 Reset: Clique duplo
+
+**Legenda:**
+- Círculos grandes: Centros dos grupos
+- Círculos pequenos: Palavras (mesma cor do grupo)
+- Marcadores brancos: Palavras compartilhadas entre grupos
+- Seta branca: indica o grupo apontado pelo texto analisado
+- ❓ amarelo: texto sem contexto claro
+"""
+
+# ==================== FUNÇÕES ====================
 
 def normalizar_texto(texto):
     if not isinstance(texto, str):
@@ -243,23 +292,23 @@ def criar_grafico_3d_plotly(texto_busca=""):
     fig = go.Figure()
 
     for nome_grupo, (x, y, z) in coords_grupos.items():
-        cor = CORES_GRUPOS[nome_grupo]
         fig.add_trace(go.Scatter3d(
-            x=[x], y=[y], z=[z],
-            mode='markers+text',
-            marker=dict(size=25, color=cor, opacity=0.7, line=dict(width=3, color='black')),
+            x=[x],
+            y=[y],
+            z=[z],
+            mode='text',
             text=nome_grupo,
-            textposition='bottom center',
-            textfont=dict(size=18, color='white'),  # AUMENTADO 30%
+            textposition='middle center',
+            textfont=dict(size=18, color='white'),
             name=nome_grupo,
-            showlegend=True
+            showlegend=False
         ))
 
     for nome_grupo, palavras_grupo in GRUPOS.items():
         centro_x, centro_y, centro_z = coords_grupos[nome_grupo]
         palavras_lista = sorted(palavras_grupo)
         n_palavras = len(palavras_lista)
-        raio_interno = 1.2
+        raio_interno = 0.8
         cor = CORES_GRUPOS[nome_grupo]
 
         for j, palavra in enumerate(palavras_lista):
@@ -271,15 +320,17 @@ def criar_grafico_3d_plotly(texto_busca=""):
             grupos_da_palavra = [ng for ng, pg in GRUPOS.items() if palavra in pg]
 
             if len(grupos_da_palavra) > 1:
-                cor_marker = "#9B59B6"
-                simbolo = 'diamond'
-                tamanho = 14
-                cor_borda = 'red'
+                cor_marker = "#FFFFFF"
+                simbolo = 'circle'
+                tamanho = 10
+                cor_borda = 'black'
+                cor_texto = "#FFFFFF"
             else:
                 cor_marker = cor
                 simbolo = 'circle'
                 tamanho = 9
                 cor_borda = 'black'
+                cor_texto = cor
 
             fig.add_trace(go.Scatter3d(
                 x=[x], y=[y], z=[z],
@@ -288,7 +339,7 @@ def criar_grafico_3d_plotly(texto_busca=""):
                            symbol=simbolo, line=dict(width=1, color=cor_borda)),
                 text=palavra,
                 textposition='top center',
-                textfont=dict(size=8, color=cor),
+                textfont=dict(size=10, color=cor_texto),
                 name=palavra,
                 showlegend=False
             ))
@@ -298,32 +349,67 @@ def criar_grafico_3d_plotly(texto_busca=""):
 
         if grupo_identificado:
             centro_x, centro_y, centro_z = coords_grupos[grupo_identificado]
-            coord_busca = (centro_x, centro_y, 1.2)
+            coord_busca = (centro_x, centro_y, 1.5)
             cor_destaque = CORES_GRUPOS[grupo_identificado]
 
+            vetor = np.array([
+                centro_x - coord_busca[0],
+                centro_y - coord_busca[1],
+                centro_z - coord_busca[2]
+            ])
+            if np.linalg.norm(vetor) < 1e-6:
+                vetor = np.array([0.0, 0.0, -0.6])
+
+            fig.add_trace(go.Cone(
+                x=[coord_busca[0]],
+                y=[coord_busca[1]],
+                z=[coord_busca[2]],
+                u=[vetor[0]],
+                v=[vetor[1]],
+                w=[vetor[2]],
+                sizemode="absolute",
+                sizeref=0.5,
+                anchor="tail",
+                showscale=False,
+                colorscale=[[0, "#FFFFFF"], [1, "#FFFFFF"]],
+                name='Indicador de Grupo',
+                showlegend=False
+            ))
+
             fig.add_trace(go.Scatter3d(
-                x=[coord_busca[0]], y=[coord_busca[1]], z=[coord_busca[2]],
-                mode='markers+text',
-                marker=dict(size=35, color=cor_destaque, symbol='diamond',
-                           opacity=1.0, line=dict(width=5, color='black')),
+                x=[coord_busca[0]],
+                y=[coord_busca[1]],
+                z=[coord_busca[2]],
+                mode='text',
                 text=f'★ {texto_busca[:30]} ★',
-                textposition='top center',
-                textfont=dict(size=12, color='red'),
+                textposition='bottom center',
+                textfont=dict(size=12, color='white'),
                 name='Texto Analisado',
-                showlegend=True
+                showlegend=False
             ))
         else:
             coord_busca = (0, 0, 2.2)
             fig.add_trace(go.Scatter3d(
-                x=[coord_busca[0]], y=[coord_busca[1]], z=[coord_busca[2]],
-                mode='markers+text',
-                marker=dict(size=35, color='gray', symbol='diamond',
-                           opacity=1.0, line=dict(width=5, color='black')),
-                text=f'★ {texto_busca[:30]} ★<br>(SEM CONTEXTO)',
+                x=[coord_busca[0]],
+                y=[coord_busca[1]],
+                z=[coord_busca[2] + 0.4],
+                mode='text',
+                text="❓",
+                textposition='middle center',
+                textfont=dict(size=24, color='#FFD700'),
+                name='Sem Contexto (Indicação)',
+                showlegend=False
+            ))
+            fig.add_trace(go.Scatter3d(
+                x=[coord_busca[0]],
+                y=[coord_busca[1]],
+                z=[coord_busca[2]],
+                mode='text',
+                text=f"{texto_busca[:30]}<br>(SEM CONTEXTO)",
                 textposition='top center',
-                textfont=dict(size=11, color='white'),
+                textfont=dict(size=14, color='#FFD700'),
                 name='Sem Contexto',
-                showlegend=True
+                showlegend=False
             ))
 
     grupos_lista = ', '.join(GRUPOS.keys())
@@ -345,7 +431,7 @@ def criar_grafico_3d_plotly(texto_busca=""):
         ),
         width=900,
         height=700,
-        margin=dict(l=0, r=0, b=0, t=60),
+        margin=dict(l=0, r=0, b=0, t=25),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='black',
         font=dict(color='white')
@@ -355,26 +441,46 @@ def criar_grafico_3d_plotly(texto_busca=""):
 
 # ==================== INTERFACE ====================
 
-def main():
+def inicializar_estado():
+    for chave, valor in SESSION_STATE_DEFAULTS.items():
+        if chave not in st.session_state:
+            st.session_state[chave] = valor.copy() if isinstance(valor, dict) else valor
+
+
+def resetar_estado():
+    for chave, valor in SESSION_STATE_DEFAULTS.items():
+        st.session_state[chave] = valor.copy() if isinstance(valor, dict) else valor
+
+
+def executar_interface(
+    criar_grafico_func,
+    info_grafico_texto,
+    titulo_pagina,
+    titulo_cabecalho="🧠 Muiraquitã - Simulador de LLM",
+    icone_pagina="🧠"
+):
     st.set_page_config(
-        page_title="Muiraquitã - Simulador LLM 3D",
-        page_icon="🧠",
+        page_title=titulo_pagina,
+        page_icon=icone_pagina,
         layout="wide"
     )
 
-    st.title("🧠 Muiraquitã - Simulador de LLM")
+    inicializar_estado()
+    if st.session_state._reset_requested:
+        resetar_estado()
+
+    st.title(titulo_cabecalho)
     st.markdown("**MPPA - CIIA | Escritório de Inovação e Inteligência Artificial**")
 
-    col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([0.5, 1.5])
 
     with col1:
-        st.header("🎛️ Painel de Controle")
-
         st.subheader("Digite uma frase ou palavra:")
-        texto_entrada = st.text_input(
+        st.text_input(
             "Insira o texto para análise semântica:",
             placeholder="Digite uma palavra ou uma pequena frase...",
-            help="Digite uma frase com contexto"
+            help="Digite uma frase com contexto",
+            key="texto_entrada"
         )
 
         col_btn1, col_btn2, col_btn3 = st.columns(3)
@@ -385,60 +491,69 @@ def main():
         with col_btn3:
             inicial = st.button("🏠 Inicial", use_container_width=True)
 
-        # BOTÃO INICIAL AGORA LIMPA TUDO
         if limpar or inicial:
-            st.session_state.resultado_analise = ""
-            st.session_state.palavra_atual = ""
-            st.session_state.scores = {}
+            st.session_state._reset_requested = True
             st.rerun()
 
-        if 'resultado_analise' not in st.session_state:
-            st.session_state.resultado_analise = ""
-        if 'palavra_atual' not in st.session_state:
-            st.session_state.palavra_atual = ""
-        if 'scores' not in st.session_state:
-            st.session_state.scores = {}
+        texto_analisar = st.session_state.texto_entrada.strip()
 
-        if analisar and texto_entrada:
-            grupo_identificado, scores = identificar_grupo(texto_entrada)
-            ambiguas = detectar_palavras_ambiguas(texto_entrada)
-            desconhecidas = detectar_palavras_desconhecidas(texto_entrada)
-
-            st.session_state.palavra_atual = texto_entrada.split()[0].strip('.,!?;:') if texto_entrada else ""
-
-            resultado = ""
-            if ambiguas:
-                resultado += "🔀 **PALAVRAS AMBÍGUAS:**\n"
-                for palavra_amb, grupos_amb in ambiguas:
-                    resultado += f"  • '{palavra_amb}' pertence a: {', '.join(grupos_amb)}\n"
-                resultado += "\n"
-
-            if desconhecidas:
-                resultado += "❓ **PALAVRAS DESCONHECIDAS:**\n"
-                resultado += f"  {', '.join(desconhecidas)}\n\n"
-
-            if grupo_identificado:
-                resultado += f"✅ **GRUPO:** {grupo_identificado}\n"
-                resultado += f"   Confiança: {scores[grupo_identificado]*100:.1f}%\n\n"
+        if analisar:
+            if not texto_analisar:
+                st.warning("Digite uma palavra ou frase para análise.")
             else:
-                resultado += "⚠️ **SEM CONTEXTO**\n\n"
+                grupo_identificado, scores = identificar_grupo(texto_analisar)
+                ambiguas = detectar_palavras_ambiguas(texto_analisar)
+                desconhecidas = sorted(set(detectar_palavras_desconhecidas(texto_analisar)))
 
-            resultado += "🎯 **Pertinência por grupo:**\n"
+                st.session_state.palavra_atual = (
+                    texto_analisar.split()[0].strip('.,!?;:')
+                    if texto_analisar else ""
+                )
 
-            st.session_state.resultado_analise = resultado
-            st.session_state.scores = scores
+                resultado = []
+                if ambiguas:
+                    resultado.append("🔀 **PALAVRAS AMBÍGUAS:**")
+                    for palavra_amb, grupos_amb in ambiguas:
+                        resultado.append(f"  • '{palavra_amb}' pertence a: {', '.join(grupos_amb)}")
+                    resultado.append("")
 
+                if desconhecidas:
+                    resultado.append("❓ **PALAVRAS DESCONHECIDAS:**")
+                    resultado.append(f"  {', '.join(desconhecidas)}")
+                    resultado.append("")
+
+                if grupo_identificado:
+                    resultado.append(f"✅ **GRUPO:** {grupo_identificado}")
+                    resultado.append(f"   Confiança: {scores[grupo_identificado]*100:.1f}%")
+                    resultado.append("")
+                else:
+                    resultado.append("⚠️ **SEM CONTEXTO**")
+                    resultado.append("")
+
+                resultado.append("🎯 **Pertinência por grupo:**")
+                for nome, valor in sorted(scores.items(), key=lambda item: item[1], reverse=True):
+                    resultado.append(f"   - {nome}: {valor*100:.1f}%")
+
+                st.session_state.resultado_analise = "\n".join(resultado).strip()
+                st.session_state.scores = dict(scores)
+                st.session_state.texto_analisado = texto_analisar
+
+    with col1:
         if st.session_state.resultado_analise:
             st.subheader("📊 Análise Detalhada:")
             st.markdown(st.session_state.resultado_analise)
 
-            # GRÁFICO DE BARRAS
             if 'scores' in st.session_state and st.session_state.scores:
-                scores_ordenados = sorted(st.session_state.scores.items(), 
-                                        key=lambda x: x[1], reverse=True)
-                grupos_names = [g[0] for g in scores_ordenados if g[1] > 0.001]
-                scores_values = [g[1]*100 for g in scores_ordenados if g[1] > 0.001]
+                scores_ordenados = sorted(
+                    st.session_state.scores.items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )
+                grupos_names = [g[0] for g in scores_ordenados]
+                scores_values = [g[1] * 100 for g in scores_ordenados]
                 cores_barras = [CORES_GRUPOS[g] for g in grupos_names]
+                yaxis_max = max(scores_values) * 1.2 if scores_values else 100
+                yaxis_max = max(yaxis_max, 10)
 
                 fig_barras = go.Figure(data=[
                     go.Bar(
@@ -455,7 +570,7 @@ def main():
                     margin=dict(l=0, r=0, t=10, b=0),
                     xaxis_title="Grupos",
                     yaxis_title="Pertinência (%)",
-                    yaxis_range=[0, max(scores_values)*1.2 if scores_values else 100],
+                    yaxis_range=[0, yaxis_max],
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
                     font=dict(color='white')
@@ -482,23 +597,33 @@ def main():
 
         if st.session_state.palavra_atual:
             st.subheader("🔍 Similaridades")
-            similaridades = calcular_similaridades_palavra(st.session_state.palavra_atual)
+            similaridades_por_grupo = calcular_similaridades_palavra(st.session_state.palavra_atual)
 
-            resultado_sim = f"🔍 **Similaridades: '{st.session_state.palavra_atual}'**\n"
-            resultado_sim += "─" * 40 + "\n\n"
+            todas_similaridades = []
+            for nome_grupo, itens in similaridades_por_grupo.items():
+                for item in itens:
+                    todas_similaridades.append({
+                        "grupo": nome_grupo,
+                        "palavra": item["palavra"],
+                        "similaridade": item["similaridade"],
+                        "cor": CORES_GRUPOS.get(nome_grupo, "#FFFFFF")
+                    })
 
-            for nome_grupo in GRUPOS.keys():
-                if nome_grupo in similaridades:
-                    resultado_sim += f"**• {nome_grupo}:**\n"
-                    top_similares = similaridades[nome_grupo][:5]
-                    for item in top_similares:
-                        palavra = item['palavra']
-                        sim = item['similaridade']
-                        icone = "🟢" if sim >= 80 else "🟡" if sim >= 50 else "⚪"
-                        resultado_sim += f"  {icone} {palavra:<11} {sim:5.1f}%\n"
-                    resultado_sim += "\n"
-
-            st.markdown(resultado_sim)
+            if not todas_similaridades:
+                st.markdown("Nenhum resultado de similaridade para esta palavra.")
+            else:
+                todas_similaridades.sort(key=lambda x: x["similaridade"], reverse=True)
+                st.markdown(f"🔍 **Similaridades globais para '{st.session_state.palavra_atual}'**")
+                for item in todas_similaridades[:20]:
+                    st.markdown(
+                        f"<span style='display:inline-flex; align-items:center;'>"
+                        f"<span style='width:10px; height:10px; border-radius:50%; "
+                        f"background:{item['cor']}; display:inline-block; margin-right:8px;'></span>"
+                        f"{item['palavra']} &mdash; <em>{item['grupo']}</em> "
+                        f"({item['similaridade']:.1f}%)"
+                        f"</span>",
+                        unsafe_allow_html=True
+                    )
         else:
             st.subheader("🔍 Similaridades")
             st.markdown("Digite uma palavra e analise para ver similaridades.")
@@ -532,24 +657,20 @@ def main():
                     )
 
     with col2:
-        st.header("🎨 Visualização 3D")
-        fig = criar_grafico_3d_plotly(texto_entrada if analisar and texto_entrada else "")
+        fig = criar_grafico_func(st.session_state.texto_analisado)
         st.plotly_chart(fig, use_container_width=True)
 
         with st.expander("ℹ️ Sobre o Gráfico"):
-            st.markdown("""
-            **Como usar:**
-            - 🔍 Zoom: Role o mouse
-            - 🖱️ Rotacionar: Clique e arraste
-            - 📏 Pan: Shift + arraste
-            - 🏠 Reset: Clique duplo
+            st.markdown(info_grafico_texto.strip())
 
-            **Legenda:**
-            - Círculos grandes: Centros dos grupos
-            - Círculos pequenos: Palavras (mesma cor do grupo)
-            - Diamantes roxos: Palavras ambíguas
-            - Diamante destaque: Texto analisado
-            """)
+
+def main():
+    executar_interface(
+        criar_grafico_func=criar_grafico_3d_plotly,
+        info_grafico_texto=INFO_GRAFICO_3D,
+        titulo_pagina="Muiraquitã - Simulador LLM 3D"
+    )
+
 
 if __name__ == "__main__":
     main()
