@@ -635,6 +635,21 @@ def executar_interface(
                         item for item in similares_filtrados
                         if item["grupo"] == grupo_foco
                     ]
+                    if len(similares_filtrados) <= 1:
+                        candidatos_grupo = sorted(
+                            similaridades_por_grupo.get(grupo_foco, []),
+                            key=lambda x: x["similaridade"],
+                            reverse=True
+                        )[:5]
+                        similares_filtrados = [
+                            {
+                                "grupo": grupo_foco,
+                                "palavra": item["palavra"],
+                                "similaridade": item["similaridade"],
+                                "cor": CORES_GRUPOS.get(grupo_foco, "#FFFFFF")
+                            }
+                            for item in candidatos_grupo
+                        ]
 
                 if not similares_filtrados:
                     st.markdown(
