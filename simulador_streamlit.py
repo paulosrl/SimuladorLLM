@@ -7,7 +7,6 @@ import streamlit as st
 import numpy as np
 import unicodedata
 import json
-from datetime import datetime
 from typing import Dict, Set, List, Tuple
 import plotly.graph_objects as go
 
@@ -44,6 +43,20 @@ GRUPOS = {
 
 COMMON_WORD = "banco"
 COMMON_WORD_GROUPS = ["Móveis", "Financeiro", "Transportes"]
+
+
+def _validar_grupos_comuns():
+    grupos_definidos = set(GRUPOS.keys())
+    faltantes = [nome for nome in COMMON_WORD_GROUPS if nome not in grupos_definidos]
+    if faltantes:
+        faltantes_fmt = ", ".join(sorted(faltantes))
+        raise ValueError(
+            f"COMMON_WORD_GROUPS contém grupos inexistentes: {faltantes_fmt}. "
+            "Verifique os nomes definidos em GRUPOS."
+        )
+
+
+_validar_grupos_comuns()
 
 
 CONTEXTO_GRUPOS = {
@@ -570,6 +583,7 @@ def executar_interface(
 
     inicializar_estado()
     if st.session_state.force_rerun:
+        st.success("Análise atualizada com os últimos resultados.")
         st.session_state.force_rerun = False
     if st.session_state._reset_requested:
         resetar_estado()
