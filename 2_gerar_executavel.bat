@@ -1,7 +1,7 @@
 @echo off
 echo ========================================
 echo Gerando executavel do Simulador LLM
-echo MPPA - CIAA
+echo MPPA - CIAA.
 echo ========================================
 echo.
 

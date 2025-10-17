@@ -1,4 +1,4 @@
-## Muiraquitã – Simulador LLM
+## Muiraquitã – Simulador LLM.
 
 Aplicação Streamlit que demonstra, de forma visual, como uma LLM poderia agrupar textos por proximidade semântica. O usuário informa frases curtas, a aplicação calcula o quanto elas se aproximam de grupos pré-definidos e atualiza gráficos interativos (3D e 2D). O objetivo é permitir que qualquer pessoa entenda, de maneira acessível, como um modelo de linguagem poderia tomar decisões de classificação.
 

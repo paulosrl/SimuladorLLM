@@ -1,5 +1,5 @@
 """
-Simulador LLM - Análise Contextual Semântica 3D
+Simulador LLM - Análise Contextual Semântica 3D.
 Versão Final: CORRIGIDA para Importações (Matplotlib) e Tipagem (Tkinter sticky).
 """
 

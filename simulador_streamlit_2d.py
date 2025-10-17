@@ -1,5 +1,5 @@
 """
-Muiraquitã - Simulador LLM 2D
+Muiraquitã - Simulador LLM 2D.
 MPPA - CIIA | Escritório de Inovação e Inteligência Artificial
 """
 

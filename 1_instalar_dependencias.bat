@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo Instalando dependencias para o executavel
+echo Instalando dependencias para o executavel.
 echo ========================================
 echo.
 
