@@ -23,8 +23,7 @@ GRUPOS = {
         "cadeira", "mesa", "banco", "armário", "sofá", "cômoda", "cama",
         "poltrona", "estante","lavagem","geladeira","fogão","micro-ondas","forno",
         "máquina de lavar","ventilador","ar condicionado","televisão","TV",
-        "decoração", "residência", "apartamento", "escritório", "design",
-        "limpeza",
+        "decoração", "residência", "apartamento", "escritório", "design",       
     },
     "Animais": {
         "cachorro", "gato", "focinho", "rato", "leão", "tigre", "baleia",
@@ -35,9 +34,8 @@ GRUPOS = {
     "Financeiro": {
         "banco", "moeda", "cédula", "caixa", "dinheiro", "investimento", "juros",
         "pix", "boleto", "cartão", "cheque", "saldo", "crédito", "débito",
-        "depósito", "deposito", "depósito bancário", "transferência", "poupança",
-        "saque", "extrato", "cofre", "aplicação","assalto","financiamento","empréstimo",
-        "lavanderia","lavagem","dinheiro sujo","corrupção","suborno","propina"
+        "depósito", "transferência", "poupança","saque", "extrato", "assalto",
+        "empréstimo","lavagem","dinheiro sujo","corrupção","suborno","propina"
     }
 }
 

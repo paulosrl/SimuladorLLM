@@ -34,7 +34,7 @@ def criar_grafico_2d_plotly(texto_busca=""):
     nomes_grupos = list(GRUPOS.keys())
     n_grupos = len(nomes_grupos)
     angulos_grupos = np.linspace(0, 2 * np.pi, n_grupos, endpoint=False)
-    raio_grupos = 6.0
+    raio_grupos = 4.8
 
     coords_grupos = {}
     for i, nome_grupo in enumerate(nomes_grupos):
@@ -102,7 +102,7 @@ def criar_grafico_2d_plotly(texto_busca=""):
                 ),
                 text=[palavra],
                 textposition='top center',
-                textfont=dict(size=11, color=cor_texto),
+                textfont=dict(size=13.2, color=cor_texto),
                 name=f"{nome_grupo} · {palavra}",
                 hoverinfo='text',
                 showlegend=False
