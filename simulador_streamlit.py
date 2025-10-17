@@ -61,14 +61,12 @@ CONTEXTO_GRUPOS = {
     "Transportes": {
         "viajar", "dirigir", "pilotar", "velocidade", "motor", "combustível", 
         "passageiro", "estrada", "rua", "aeroporto", "garagem", "estacionar",
-        "viagem", "roda", "acelerar", "freio", "transporte", "locomover", "tráfego",
         "partida", "chegada", "embarque", "desembarque", "trajeto", "rodovia",
         "ponto", "embarcar", "porto", "metrô"
     },
     "Móveis": {
         "sentar", "sentei", "sentou", "sentado", "sentada", "sentem", "casa", 
         "sala", "quarto", "madeira", "decoração", "móvel", "conforto", "decorar", 
-        "residência", "apartamento", "escritório", "design", "estofado", "montagem", 
         "ergonomia", "praça", "jardim", "parque", "acomodar", "descansar", "repousar",
         "apoiar", "encostar", "interior", "decoração"
     },
@@ -79,9 +77,9 @@ CONTEXTO_GRUPOS = {
         "réptil", "selva", "pantanal", "floresta", "crocodilo", "aquático"
     },
     "Financeiro": {
-        "dinheiro", "pagar", "receber", "conta", "depósito", "depositar", "depositei",
-        "saque", "sacar", "transferência", "transferir", "agência", "gerente", 
-        "aplicar", "investir", "economizar", "cartão", "cheque", "empréstimo", 
+        "dinheiro", "pagar", "receber", "conta", "depósito", "saque", 
+        "transferência", "agência", "gerente", "aplicar", "investir", 
+        "economizar", "cartão", "cheque", "empréstimo", 
         "financiamento", "juros", "taxa", "saldo", "crédito", "débito", "poupança", 
         "correntista", "cofre", "financeiro", "bancário", "caixa eletrônico"
     }
