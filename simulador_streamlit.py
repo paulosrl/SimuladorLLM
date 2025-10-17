@@ -8,6 +8,7 @@ import numpy as np
 import unicodedata
 import json
 from datetime import datetime
+from typing import Dict, Set, List, Tuple
 import plotly.graph_objects as go
 
 # ==================== DADOS ====================
@@ -16,22 +17,33 @@ GRUPOS = {
     "Transportes": {
         "carro", "avião", "ônibus", "bicicleta", "motocicleta", "trem", "veículo",
         "barco", "navio", "metrô", "estrada", "aeroporto", "garagem", "rota",
+        "lavagem","combustível","posto de gasolina","gasolina","diesel","etanol","flex",
+        "transporte","locomover","tráfego","acidente","engarrafamento","congestionamento"
     },
     "Móveis": {
         "cadeira", "mesa", "banco", "armário", "sofá", "cômoda", "cama",
-        "poltrona", "estante"
+        "poltrona", "estante","lavagem","geladeira","fogão","micro-ondas","forno",
+        "máquina de lavar","ventilador","ar condicionado","televisão","TV",
+        "decoração", "residência", "apartamento", "escritório", "design",
+        "limpeza",
     },
     "Animais": {
         "cachorro", "gato", "focinho", "rato", "leão", "tigre", "baleia",
-        "rabo", "crocodilo", "cavalo", "ferradura"
+        "rabo", "crocodilo", "cavalo", "ferradura","mucura","onça","arara",
+        "jacaré","réptil","selva","pantanal","floresta","aquático","marinho",
+        "mamífero", "espécie", "fauna", "veterinário", "alimentar", "selvagem",    
     },
     "Financeiro": {
         "banco", "moeda", "cédula", "caixa", "dinheiro", "investimento", "juros",
         "pix", "boleto", "cartão", "cheque", "saldo", "crédito", "débito",
         "depósito", "deposito", "depósito bancário", "transferência", "poupança",
-        "saque", "extrato", "cofre", "aplicação"
+        "saque", "extrato", "cofre", "aplicação","assalto","financiamento","empréstimo",
+        "lavanderia","lavagem","dinheiro sujo","corrupção","suborno","propina"
     }
 }
+
+COMMON_WORD = "banco"
+COMMON_WORD_GROUPS = ["Móveis", "Financeiro", "Transportes"]
 
 
 CONTEXTO_GRUPOS = {
@@ -68,23 +80,26 @@ PALAVRAS_INFERENCIA = {
     "Animais": [
         "tartaruga", "cobra", "pássaro", "peixe", "elefante", "girafa",
         "macaco", "urso", "lobo", "raposa", "coelho", "hamster", "papagaio",
-        "jacaré", "crocodilo", "cavalo", "lagarto", "onça", "sapo"
+        "jacaré", "crocodilo", "cavalo", "lagarto", "onça", "sapo",
+        "hipopótamo", "panda", "golfinho", "falcão", "abutre","jabuti","jaboti",
+        "arara","mucura","réptil","anfíbio","aquático","marinho","selvagem",
+        "perema","catita","jiboia","serpente","surucucu","anaconda"
     ],
     "Transportes": [
         "moto", "barco", "navio", "helicóptero", "metrô", "taxi",
         "caminhão", "van", "scooter", "patinete", "skate", "uber",
-        "barca", "bicicletário"
+        "barca", "bicicletário", "teleférico", "bondinho", "aeronave"
     ],
     "Móveis": [
         "estante", "escrivaninha", "poltrona", "banqueta", "criado-mudo",
         "guarda-roupa", "buffet", "aparador", "rack", "prateleira",
-        "puff", "cômoda", "sapateira"
+        "puff", "cômoda", "sapateira", "balcão", "cabideiro", "divã"
     ],
     "Financeiro": [
         "pix", "boleto", "nota", "real", "dólar", "euro", "bitcoin",
         "ação", "fundo", "renda", "lucro", "poupança", "cartão",
         "investidor", "fintech", "depósito", "transferência", "remessa",
-        "depósito bancário"
+        "depósito bancário", "tesouro", "derivativo", "swap", "portfólio"
     ]
 }
 
@@ -108,7 +123,8 @@ SESSION_STATE_DEFAULTS = {
     "palavra_atual": "",
     "scores": {},
     "grupo_identificado": None,
-    "_reset_requested": False
+    "_reset_requested": False,
+    "force_rerun": False
 }
 
 INFO_GRAFICO_3D = """
@@ -134,6 +150,43 @@ def normalizar_texto(texto):
     texto_nfd = unicodedata.normalize('NFD', texto)
     texto_sem_acento = ''.join(char for char in texto_nfd if unicodedata.category(char) != 'Mn')
     return texto_sem_acento.lower().strip()
+
+def sincronizar_palavra_comum():
+    palavra_norm = normalizar_texto(COMMON_WORD)
+    for nome, palavras in list(GRUPOS.items()):
+        if not isinstance(palavras, set):
+            GRUPOS[nome] = set(palavras)
+
+    for nome in COMMON_WORD_GROUPS:
+        if nome in GRUPOS:
+            if COMMON_WORD not in GRUPOS[nome]:
+                GRUPOS[nome].add(COMMON_WORD)
+
+    for nome, palavras in list(GRUPOS.items()):
+        if nome not in COMMON_WORD_GROUPS:
+            GRUPOS[nome] = {p for p in palavras if normalizar_texto(p) != palavra_norm}
+
+sincronizar_palavra_comum()
+
+def obter_palavras_compartilhadas(grupos: Dict[str, Set[str]]) -> List[Tuple[str, List[str]]]:
+    ocorrencias: Dict[str, Set[str]] = {}
+    representantes: Dict[str, str] = {}
+
+    for nome_grupo, palavras in grupos.items():
+        for palavra in palavras:
+            chave = normalizar_texto(palavra)
+            if not chave:
+                continue
+            ocorrencias.setdefault(chave, set()).add(nome_grupo)
+            representantes.setdefault(chave, palavra)
+
+    compartilhadas: List[Tuple[str, List[str]]] = []
+    for chave, nomes in ocorrencias.items():
+        if len(nomes) > 1:
+            compartilhadas.append((representantes.get(chave, chave), sorted(nomes)))
+
+    compartilhadas.sort(key=lambda item: (item[0].lower(), item[1]))
+    return compartilhadas
 
 def calcular_similaridade_levenshtein(palavra1, palavra2):
     if palavra1 == palavra2:
@@ -514,6 +567,8 @@ def executar_interface(
     )
 
     inicializar_estado()
+    if st.session_state.force_rerun:
+        st.session_state.force_rerun = False
     if st.session_state._reset_requested:
         resetar_estado()
 
@@ -583,6 +638,8 @@ def executar_interface(
             st.session_state.scores = dict(scores)
             st.session_state.texto_analisado = texto_analisar
             st.session_state.grupo_identificado = grupo_identificado
+            st.session_state.force_rerun = True
+            st.rerun()
 
     st.subheader("🌐 Visualização 3D")
     fig = criar_grafico_func(st.session_state.texto_analisado)
@@ -727,6 +784,15 @@ def executar_interface(
     for nome, palavras in GRUPOS.items():
         with st.expander(f"{nome} ({len(palavras)} palavras)"):
             st.write(", ".join(sorted(palavras)))
+
+    palavras_compartilhadas = obter_palavras_compartilhadas(GRUPOS)
+    st.subheader("🔁 Palavras em mais de um grupo")
+    if palavras_compartilhadas:
+        for palavra, grupos_relacionados in palavras_compartilhadas:
+            grupos_fmt = ", ".join(grupos_relacionados)
+            st.markdown(f"- `{palavra}` → {grupos_fmt}")
+    else:
+        st.markdown("Nenhuma palavra se repete entre os grupos atuais.")
 
 
 def main():

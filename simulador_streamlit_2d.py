@@ -9,6 +9,8 @@ import plotly.graph_objects as go
 from simulador_streamlit import (
     GRUPOS,
     CORES_GRUPOS,
+    COMMON_WORD,
+    normalizar_texto,
     identificar_grupo,
     executar_interface
 )
@@ -41,8 +43,6 @@ def criar_grafico_2d_plotly(texto_busca=""):
         coords_grupos[nome_grupo] = (x, y)
 
     fig = go.Figure()
-
-    # Círculo guia
     fig.add_shape(
         type="circle",
         x0=-raio_grupos * 1.05,
@@ -58,17 +58,10 @@ def criar_grafico_2d_plotly(texto_busca=""):
         fig.add_trace(go.Scatter(
             x=[x],
             y=[y],
-            mode='markers+text',
-            marker=dict(
-                size=36,
-                color=cor,
-                opacity=0.8,
-                symbol='circle',
-                line=dict(width=2, color='black')
-            ),
+            mode='text',
             text=[nome_grupo],
             textposition='top center',
-            textfont=dict(size=16, color='white'),
+            textfont=dict(size=24, color='white', family="Montserrat, sans-serif"),
             name=nome_grupo,
             hoverinfo='text'
         ))
@@ -88,16 +81,20 @@ def criar_grafico_2d_plotly(texto_busca=""):
 
             grupos_da_palavra = [ng for ng, pg in GRUPOS.items() if palavra in pg]
             palavra_compartilhada = len(grupos_da_palavra) > 1
+            palavra_eh_comum = (
+                normalizar_texto(palavra) == normalizar_texto(COMMON_WORD)
+            )
 
             cor_marker = "#FFFFFF" if palavra_compartilhada else cor_base
             cor_texto = "#FFFFFF" if palavra_compartilhada else cor_base
+            tamanho = 18 if palavra_eh_comum else 14
 
             fig.add_trace(go.Scatter(
                 x=[x],
                 y=[y],
                 mode='markers+text',
                 marker=dict(
-                    size=14,
+                    size=tamanho,
                     color=cor_marker,
                     opacity=0.9,
                     symbol='circle',
