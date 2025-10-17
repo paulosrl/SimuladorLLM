@@ -99,7 +99,9 @@ PALAVRAS_INFERENCIA = {
         "pix", "boleto", "nota", "real", "dólar", "euro", "bitcoin",
         "ação", "fundo", "renda", "lucro", "poupança", "cartão",
         "investidor", "fintech", "depósito", "transferência", "remessa",
-        "depósito bancário", "tesouro", "derivativo", "swap", "portfólio"
+        "depósito bancário", "tesouro", "derivativo", "swap", "portfólio",
+        "cidade", "prefeitura", "governo", "imposto", "tributo", "corrupção", "suborno", 
+        "Brasil",
     ]
 }
 
