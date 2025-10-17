@@ -23,18 +23,12 @@ Aplicação Streamlit que demonstra, de forma visual, como uma LLM poderia agrup
 - Removeu o marcador circular interno para o nome dos grupos; apenas o texto aparece com fonte maior.
 - Palavras compartilhadas continuam brancas e a palavra comum recebe um marcador maior.
 
-### Geração de vocabulário (opcional)
-
-- O simulador opera 100% offline com os dicionários definidos em código. Entretanto, o projeto inclui `temp.py`, que demonstra como consultar o Gemini (`google-generativeai`) para gerar novos vocabulários.
-- `requirements.txt` e `pyproject.toml` listam `python-dotenv` para ler `GEMINI_API_KEY` do `.env`. Se preferir, basta ignorar o script e manter o vocabulário estático.
-
 ### Estrutura dos principais arquivos
 
 | Arquivo | Função |
 | --- | --- |
 | `simulador_streamlit.py` | Core do simulador 3D: dados, análise, UI e gráficos Plotly. |
 | `simulador_streamlit_2d.py` | Visualização alternativa em 2D usando o mesmo núcleo lógico. |
-| `temp.py` | Teste simples para verificar a chave do Gemini e gerar conteúdo de validação. |
 | `requirements.txt` / `pyproject.toml` | Dependências para instalar com `pip`. |
 
 ### Objetivo educacional
@@ -81,13 +75,3 @@ Sinta-se à vontade para adaptar os dicionários, cores e pesos para que a simul
   ```bash
   streamlit run simulador_streamlit_2d.py
   ```
-
-### Teste rápido da API Gemini
-
-Use o script auxiliar:
-
-```bash
-python temp.py
-```
-
-Ele valida o carregamento do `.env`, inicializa o modelo `gemini-pro-latest` e envia um prompt simples, confirmando se a resposta é adequada.
