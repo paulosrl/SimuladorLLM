@@ -30,25 +30,29 @@ INFO_GRAFICO_2D = """
 """
 
 
+def gerar_path_elipse(raio_x, raio_y, n_pontos=180):
+    angulos = np.linspace(0, 2 * np.pi, n_pontos, endpoint=False)
+    pontos = [f"{raio_x * np.cos(theta):.4f},{raio_y * np.sin(theta):.4f}" for theta in angulos]
+    return "M " + " L ".join(pontos) + " Z"
+
+
 def criar_grafico_2d_plotly(texto_busca=""):
     nomes_grupos = list(GRUPOS.keys())
     n_grupos = len(nomes_grupos)
     angulos_grupos = np.linspace(0, 2 * np.pi, n_grupos, endpoint=False)
-    raio_grupos = 4.8
+    raio_grupos_x = 5.0
+    raio_grupos_y = 3.6
 
     coords_grupos = {}
     for i, nome_grupo in enumerate(nomes_grupos):
-        x = raio_grupos * np.cos(angulos_grupos[i])
-        y = raio_grupos * np.sin(angulos_grupos[i])
+        x = raio_grupos_x * np.cos(angulos_grupos[i])
+        y = raio_grupos_y * np.sin(angulos_grupos[i])
         coords_grupos[nome_grupo] = (x, y)
 
     fig = go.Figure()
     fig.add_shape(
-        type="circle",
-        x0=-raio_grupos * 1.05,
-        y0=-raio_grupos * 1.05,
-        x1=raio_grupos * 1.05,
-        y1=raio_grupos * 1.05,
+        type="path",
+        path=gerar_path_elipse(raio_grupos_x * 1.05, raio_grupos_y * 1.05),
         line=dict(color="rgba(255,255,255,0.1)", dash="dot")
     )
 
@@ -71,7 +75,7 @@ def criar_grafico_2d_plotly(texto_busca=""):
         centro_x, centro_y = coords_grupos[nome_grupo]
         palavras_lista = sorted(palavras_grupo)
         n_palavras = len(palavras_lista)
-        raio_interno = 2.2
+        raio_interno = 2.6
         cor_base = CORES_GRUPOS[nome_grupo]
 
         for j, palavra in enumerate(palavras_lista):
@@ -162,7 +166,7 @@ def criar_grafico_2d_plotly(texto_busca=""):
         margin=dict(l=10, r=10, t=20, b=10),
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='#000000',
-        showlegend=True,
+        showlegend=False,
         font=dict(color='white'),
     )
 
